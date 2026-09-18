@@ -11,10 +11,10 @@ struct Video: Identifiable {
     let author: String
     let caption: String
     let recommend: String
-    let likes: String
-    let comments: String
-    let favorites: String
-    let shares: String
+    var likes: String
+    var comments: String
+    var favorites: String
+    var shares: String
     let musicLine: String
     let musicTitle: String
     // 连上后台后才有
