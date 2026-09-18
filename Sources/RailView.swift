@@ -98,7 +98,7 @@ struct RailView: View {
 
                 Button(action: onSameStyle) {
                     Text("拍同款")
-                        .font(font(M.sameStyleFont, .medium))
+                        .font(pf(M.sameStyleFont, .medium))
                         .foregroundColor(.white)
                         .padding(.horizontal, 2)
                         .padding(.vertical, 4)
@@ -115,7 +115,7 @@ struct RailView: View {
 
     private func countText(_ s: String) -> some View {
         Text(s)
-            .font(font(M.railCountFont, .semibold))
+            .font(pf(M.railCountFont, .semibold))
             .foregroundColor(.white)
             .shadow(color: Color.black.opacity(0.25), radius: 1, x: 0, y: 0.5)
     }

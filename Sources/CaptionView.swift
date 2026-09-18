@@ -18,7 +18,7 @@ struct CaptionView: View {
                 Button(action: onRecommend) {
                     HStack(spacing: 4) {
                         Text(video.recommend)
-                            .font(font(M.pillFont, .medium))
+                            .font(pf(M.pillFont, .medium))
                             .foregroundColor(.white)
                         ChevronIcon(size: 7, thickness: 1.6, direction: .right,
                                     color: Color.white.opacity(0.85))
@@ -35,7 +35,7 @@ struct CaptionView: View {
 
                 // 作者
                 Text(video.author)
-                    .font(font(M.authorFont, .semibold))
+                    .font(pf(M.authorFont, .semibold))
                     .foregroundColor(.white)
                     .shadow(color: Color.black.opacity(0.22), radius: 2, x: 0, y: 1)
                     .fixedSize()
@@ -45,7 +45,7 @@ struct CaptionView: View {
 
                 // 文案
                 Text(video.caption)
-                    .font(font(M.captionFont))
+                    .font(pf(M.captionFont))
                     .foregroundColor(.white)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
@@ -60,12 +60,12 @@ struct CaptionView: View {
                     HStack(spacing: 5) {
                         MusicNoteIcon(size: 12)
                         Text(video.musicLine)
-                            .font(font(M.musicFont))
+                            .font(pf(M.musicFont))
                             .foregroundColor(.white)
                         ChevronIcon(size: 7, thickness: 1.6, direction: .right,
                                     color: Color.white.opacity(0.9))
                         Text("《" + video.musicTitle + "》")
-                            .font(font(M.musicFont))
+                            .font(pf(M.musicFont))
                             .foregroundColor(.white)
                     }
                     .contentShape(Rectangle())

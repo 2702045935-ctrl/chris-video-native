@@ -108,6 +108,6 @@ extension View {
 }
 
 /// 一行文字的最亮处对齐用不到，这里只做统一的字重/字体封装
-func font(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
+func pf(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
     Font.system(size: size, weight: weight)
 }

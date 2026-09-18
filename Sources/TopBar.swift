@@ -35,7 +35,7 @@ struct TopBar: View {
                                 selected = i
                             } label: {
                                 Text(tabs[i])
-                                    .font(font(i == selected ? M.tabFontActive : M.tabFontIdle,
+                                    .font(pf(i == selected ? M.tabFontActive : M.tabFontIdle,
                                                i == selected ? .bold : .regular))
                                     .foregroundColor(i == selected ? C.white : C.tabIdle)
                                     .frame(width: M.tabItemWidth, height: M.topBarHeight)

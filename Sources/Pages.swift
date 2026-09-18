@@ -20,18 +20,18 @@ struct SearchPage: View {
                                 Text("搜索你感兴趣的内容").foregroundColor(Color(white: 0.5))
                             }
                             .foregroundColor(.white)
-                            .font(font(15))
+                            .font(pf(15))
                     }
                     .padding(.horizontal, 12)
                     .frame(height: 36)
                     .background(RoundedRectangle(cornerRadius: 18).fill(Color(white: 0.16)))
                     Button("取消", action: onClose)
                         .foregroundColor(.white)
-                        .font(font(15))
+                        .font(pf(15))
                 }
                 Text("猜你想搜")
                     .foregroundColor(.white)
-                    .font(font(16, .semibold))
+                    .font(pf(16, .semibold))
                 FlowRow(items: hot)
                 Spacer()
             }
@@ -50,7 +50,7 @@ struct FlowRow: View {
         LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
             ForEach(items, id: \.self) { t in
                 Text(t)
-                    .font(font(13))
+                    .font(pf(13))
                     .foregroundColor(.white)
                     .padding(.horizontal, 12)
                     .frame(height: 30)
@@ -70,12 +70,12 @@ struct SheetPage: View {
             Color(white: 0.07).ignoresSafeArea()
             VStack(spacing: 14) {
                 Capsule().fill(Color(white: 0.35)).frame(width: 36, height: 4).padding(.top, 10)
-                Text(title).font(font(20, .semibold)).foregroundColor(.white)
+                Text(title).font(pf(20, .semibold)).foregroundColor(.white)
                 if let s = subtitle {
-                    Text(s).font(font(14)).foregroundColor(Color(white: 0.6))
+                    Text(s).font(pf(14)).foregroundColor(Color(white: 0.6))
                 }
                 Text("这里先留空，需要什么内容告诉我。")
-                    .font(font(14))
+                    .font(pf(14))
                     .foregroundColor(Color(white: 0.45))
                     .padding(.top, 6)
                 Spacer()
@@ -114,7 +114,7 @@ struct TabPage: View {
     private var header: some View {
         HStack {
             Text(titles[index])
-                .font(font(20, .semibold))
+                .font(pf(20, .semibold))
                 .foregroundColor(.white)
             Spacer()
             SearchIcon(size: 19, color: Color(white: 0.75))
@@ -141,11 +141,11 @@ struct TabPage: View {
                             .frame(width: 46, height: 46)
                             .clipShape(Circle())
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(v.author).font(font(15, .medium)).foregroundColor(.white)
-                            Text(v.caption).font(font(13)).foregroundColor(Color(white: 0.55)).lineLimit(1)
+                            Text(v.author).font(pf(15, .medium)).foregroundColor(.white)
+                            Text(v.caption).font(pf(13)).foregroundColor(Color(white: 0.55)).lineLimit(1)
                         }
                         Spacer()
-                        Text("刚刚").font(font(12)).foregroundColor(Color(white: 0.4))
+                        Text("刚刚").font(pf(12)).foregroundColor(Color(white: 0.4))
                     }
                     .padding(.horizontal, 16)
                     .frame(height: 72)
@@ -159,8 +159,8 @@ struct TabPage: View {
                         .clipShape(Circle())
                         .overlay(Circle().stroke(Color.white.opacity(0.85), lineWidth: 2))
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("@明澈").font(font(17, .semibold)).foregroundColor(.white)
-                        Text("抖音号：mingche_2026").font(font(12)).foregroundColor(Color(white: 0.5))
+                        Text("@明澈").font(pf(17, .semibold)).foregroundColor(.white)
+                        Text("抖音号：mingche_2026").font(pf(12)).foregroundColor(Color(white: 0.5))
                     }
                     Spacer()
                 }
@@ -184,8 +184,8 @@ struct TabPage: View {
 
     private func stat(_ n: String, _ t: String) -> some View {
         VStack(spacing: 3) {
-            Text(n).font(font(17, .semibold)).foregroundColor(.white)
-            Text(t).font(font(12)).foregroundColor(Color(white: 0.5))
+            Text(n).font(pf(17, .semibold)).foregroundColor(.white)
+            Text(t).font(pf(12)).foregroundColor(Color(white: 0.5))
         }
     }
 
@@ -201,7 +201,7 @@ struct TabPage: View {
                 Color(white: 0.15).frame(height: 240)
             }
             Text(v.caption)
-                .font(font(12))
+                .font(pf(12))
                 .foregroundColor(.white)
                 .lineLimit(2)
                 .padding(8)
