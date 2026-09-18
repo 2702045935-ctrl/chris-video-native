@@ -1,63 +1,56 @@
 //  RailView.swift
-//  右侧操作栏：头像+关注、赞、评论、收藏、分享、拍同款
+//  右侧操作栏：头像(+关注)、赞、评论、收藏、分享、拍同款
 
 import SwiftUI
 
 struct RailView: View {
     let video: Video
-    @Binding var liked: Bool
-    @Binding var starred: Bool
+    var onLike: () -> Void
+    var onStar: () -> Void
     var onComment: () -> Void
     var onShare: () -> Void
+    var onFollow: () -> Void
     var onSameStyle: () -> Void
-
-    private func likeText(_ s: String) -> String {
-        liked ? bump(s) : s
-    }
-
-    private func bump(_ s: String) -> String {
-        if s.hasSuffix("万") { return s }
-        if let n = Int(s) { return "\(n + 1)" }
-        return s
-    }
 
     var body: some View {
         GeometryReader { geo in
             let cx = geo.size.width - M.railCenterTrailing
             let b = geo.size.height
+            let iconScale = Theme.railIconScale
 
             ZStack(alignment: .topLeading) {
-                // 头像
-                AvatarView(name: avatarName)
+                AvatarView(name: video.avatar)
                     .frame(width: M.avatarSize, height: M.avatarSize)
                     .clipShape(Circle())
                     .overlay(Circle().stroke(Color.white, lineWidth: M.avatarRing))
                     .position(x: cx, y: b - M.railAvatarAboveBottom)
 
-                // 关注 ＋
-                ZStack {
-                    Circle().fill(C.red)
-                    PlusIcon(size: 9, thickness: 2.1, color: .white)
+                if Theme.showFollow && !video.following {
+                    Button(action: onFollow) {
+                        ZStack {
+                            Circle().fill(Theme.primary)
+                            PlusIcon(size: 9, thickness: 2.1, color: .white)
+                        }
+                        .frame(width: M.followBadge, height: M.followBadge)
+                        .contentShape(Rectangle())
+                    }
+                    .position(x: cx, y: b - M.railBadgeAboveBottom)
                 }
-                .frame(width: M.followBadge, height: M.followBadge)
-                .position(x: cx, y: b - M.railBadgeAboveBottom)
 
-                // 赞
-                Button { liked.toggle() } label: {
+                Button(action: onLike) {
                     HeartShape()
-                        .fill(liked ? C.red : Color.white)
-                        .frame(width: M.likeIconSize * 0.95, height: M.likeIconSize * 0.9)
+                        .fill(video.liked ? Theme.primary : Color.white)
+                        .frame(width: M.likeIconSize * iconScale, height: M.likeIconSize * iconScale * 0.92)
                 }
                 .frame(width: 52, height: 52)
                 .contentShape(Rectangle())
                 .position(x: cx, y: b - M.railLikeAboveBottom)
 
-                countText(likeText(video.likes))
+                countText(video.likes)
                     .position(x: cx, y: b - M.railLikeAboveBottom + M.railCountBelowIcon)
 
-                // 评论
                 Button(action: onComment) {
-                    CommentIcon(size: M.commentIconSize)
+                    CommentIcon(size: M.commentIconSize * iconScale)
                 }
                 .frame(width: 52, height: 52)
                 .contentShape(Rectangle())
@@ -66,11 +59,10 @@ struct RailView: View {
                 countText(video.comments)
                     .position(x: cx, y: b - M.railCommentAboveBottom + M.railCountBelowIcon)
 
-                // 收藏
-                Button { starred.toggle() } label: {
+                Button(action: onStar) {
                     StarShape()
-                        .fill(starred ? Color(red: 1, green: 0.78, blue: 0.16) : Color.white)
-                        .frame(width: M.starIconSize, height: M.starIconSize)
+                        .fill(video.favorited ? Theme.star : Color.white)
+                        .frame(width: M.starIconSize * iconScale, height: M.starIconSize * iconScale)
                 }
                 .frame(width: 52, height: 52)
                 .contentShape(Rectangle())
@@ -79,11 +71,10 @@ struct RailView: View {
                 countText(video.favorites)
                     .position(x: cx, y: b - M.railStarAboveBottom + M.railCountBelowIcon)
 
-                // 分享
                 Button(action: onShare) {
                     ShareShape()
                         .fill(Color.white)
-                        .frame(width: M.shareIconSize, height: M.shareIconSize * 0.78)
+                        .frame(width: M.shareIconSize * iconScale, height: M.shareIconSize * iconScale * 0.78)
                 }
                 .frame(width: 52, height: 52)
                 .contentShape(Rectangle())
@@ -92,13 +83,12 @@ struct RailView: View {
                 countText(video.shares)
                     .position(x: cx, y: b - M.railShareAboveBottom + M.railCountBelowIcon)
 
-                // 拍同款
                 MusicNoteIcon(size: M.musicNoteSize)
                     .position(x: cx, y: b - M.railNoteAboveBottom)
 
                 Button(action: onSameStyle) {
                     Text("拍同款")
-                        .font(pf(M.sameStyleFont, .medium))
+                        .font(pf(Theme.sameStyleFont, .medium))
                         .foregroundColor(.white)
                         .padding(.horizontal, 2)
                         .padding(.vertical, 4)
@@ -109,46 +99,57 @@ struct RailView: View {
         }
     }
 
-    private var avatarName: String {
-        "avatar-01"
-    }
-
     private func countText(_ s: String) -> some View {
         Text(s)
-            .font(pf(M.railCountFont, .semibold))
+            .font(pf(Theme.countFont, .semibold))
             .foregroundColor(.white)
             .shadow(color: Color.black.opacity(0.25), radius: 1, x: 0, y: 0.5)
     }
 }
 
-/// 头像：优先用打包的图片，没有就画一个剪影
+/// 头像：支持后台地址（http）和 App 内置图片，都没有就画剪影
 struct AvatarView: View {
     let name: String
 
     var body: some View {
         GeometryReader { geo in
             let s = min(geo.size.width, geo.size.height)
-            if let img = Store.image(name) {
+            if name.hasPrefix("http") {
+                AsyncImage(url: URL(string: name)) { phase in
+                    switch phase {
+                    case .success(let img):
+                        img.resizable().aspectRatio(contentMode: .fill)
+                    default:
+                        placeholder(s)
+                    }
+                }
+                .frame(width: s, height: s)
+                .clipped()
+            } else if let img = Store.image(name) {
                 Image(uiImage: img)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(width: s, height: s)
                     .clipped()
             } else {
-                ZStack {
-                    LinearGradient(colors: [Color(white: 0.35), Color(white: 0.18)],
-                                   startPoint: .top, endPoint: .bottom)
-                    Circle()
-                        .fill(Color.white.opacity(0.85))
-                        .frame(width: s * 0.34, height: s * 0.34)
-                        .position(x: s / 2, y: s * 0.34)
-                    Capsule()
-                        .fill(Color.white.opacity(0.85))
-                        .frame(width: s * 0.62, height: s * 0.40)
-                        .position(x: s / 2, y: s * 0.92)
-                }
-                .frame(width: s, height: s)
+                placeholder(s)
             }
         }
+    }
+
+    private func placeholder(_ s: CGFloat) -> some View {
+        ZStack {
+            LinearGradient(colors: [Color(white: 0.35), Color(white: 0.18)],
+                           startPoint: .top, endPoint: .bottom)
+            Circle()
+                .fill(Color.white.opacity(0.85))
+                .frame(width: s * 0.34, height: s * 0.34)
+                .position(x: s / 2, y: s * 0.34)
+            Capsule()
+                .fill(Color.white.opacity(0.85))
+                .frame(width: s * 0.62, height: s * 0.40)
+                .position(x: s / 2, y: s * 0.92)
+        }
+        .frame(width: s, height: s)
     }
 }

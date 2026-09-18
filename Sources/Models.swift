@@ -17,6 +17,21 @@ struct Video: Identifiable {
     let shares: String
     let musicLine: String
     let musicTitle: String
+    // 连上后台后才有
+    var remoteId: String = ""
+    var authorId: String = ""
+    var avatar: String = ""
+    var liked: Bool = false
+    var favorited: Bool = false
+    var following: Bool = false
+
+    func with(liked: Bool? = nil, favorited: Bool? = nil, following: Bool? = nil) -> Video {
+        var v = self
+        if let x = liked { v.liked = x }
+        if let x = favorited { v.favorited = x }
+        if let x = following { v.following = x }
+        return v
+    }
 }
 
 enum Store {
@@ -66,7 +81,36 @@ enum Store {
 
     /// 打包进 App 的短视频
     static func videoURL(_ name: String) -> URL? {
-        Bundle.main.url(forResource: name, withExtension: "mp4")
+        if name.hasPrefix("http") { return URL(string: name) }
+        return Bundle.main.url(forResource: name, withExtension: "mp4")
+    }
+
+    /// 后台返回的地址（posters/xx.jpg、videos/xx.mp4）拼成完整 URL
+    static func media(_ path: String) -> String {
+        if path.isEmpty || path.hasPrefix("http") { return path }
+        return ServerConfig.base + "/uploads/" + path
+    }
+
+    /// 把后台的一条视频转成界面用的 Video
+    static func fromRemote(_ r: RemoteVideo, index: Int) -> Video {
+        Video(id: index,
+              poster: r.poster.map { media($0) } ?? "",
+              clip: r.video.map { media($0) } ?? "",
+              author: r.author.name,
+              caption: r.title,
+              recommend: r.recommendText ?? "",
+              likes: r.texts?.like ?? "0",
+              comments: r.texts?.comment ?? "0",
+              favorites: r.texts?.favorite ?? "0",
+              shares: r.texts?.share ?? "0",
+              musicLine: r.music?.source ?? "去汽水听",
+              musicTitle: r.music?.title ?? "",
+              remoteId: r.id,
+              authorId: r.author.id,
+              avatar: r.author.avatar.map { media($0) } ?? "",
+              liked: r.liked ?? false,
+              favorited: r.favorited ?? false,
+              following: r.author.following ?? false)
     }
 }
 
@@ -79,7 +123,19 @@ struct VideoCanvas: View {
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                if let img = Store.image(video.poster) {
+                if video.poster.hasPrefix("http") {
+                    AsyncImage(url: URL(string: video.poster)) { phase in
+                        switch phase {
+                        case .success(let img):
+                            img.resizable().aspectRatio(contentMode: .fill)
+                        default:
+                            Color(white: 0.08)
+                        }
+                    }
+                    .frame(width: geo.size.width, height: geo.size.height)
+                    .scaleEffect(zoom)
+                    .clipped()
+                } else if let img = Store.image(video.poster) {
                     Image(uiImage: img)
                         .resizable()
                         .aspectRatio(contentMode: .fill)

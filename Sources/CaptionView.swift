@@ -18,7 +18,7 @@ struct CaptionView: View {
                 Button(action: onRecommend) {
                     HStack(spacing: 4) {
                         Text(video.recommend)
-                            .font(pf(M.pillFont, .medium))
+                            .font(pf(Theme.pillFont, .medium))
                             .foregroundColor(.white)
                         ChevronIcon(size: 7, thickness: 1.6, direction: .right,
                                     color: Color.white.opacity(0.85))
@@ -32,10 +32,11 @@ struct CaptionView: View {
                 .padding(.leading, M.pillLeading)
                 .frame(width: w, alignment: .leading)
                 .position(x: w / 2, y: b - M.pillFromBottom)
+                .opacity(Theme.showRecommend && !video.recommend.isEmpty ? 1 : 0)
 
                 // 作者
                 Text(video.author)
-                    .font(pf(M.authorFont, .semibold))
+                    .font(pf(Theme.authorFont, .semibold))
                     .foregroundColor(.white)
                     .shadow(color: Color.black.opacity(0.22), radius: 2, x: 0, y: 1)
                     .fixedSize()
@@ -45,7 +46,7 @@ struct CaptionView: View {
 
                 // 文案
                 Text(video.caption)
-                    .font(pf(M.captionFont))
+                    .font(pf(Theme.captionFont))
                     .foregroundColor(.white)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
@@ -60,12 +61,12 @@ struct CaptionView: View {
                     HStack(spacing: 5) {
                         MusicNoteIcon(size: 12)
                         Text(video.musicLine)
-                            .font(pf(M.musicFont))
+                            .font(pf(Theme.musicFont))
                             .foregroundColor(.white)
                         ChevronIcon(size: 7, thickness: 1.6, direction: .right,
                                     color: Color.white.opacity(0.9))
                         Text("《" + video.musicTitle + "》")
-                            .font(pf(M.musicFont))
+                            .font(pf(Theme.musicFont))
                             .foregroundColor(.white)
                     }
                     .contentShape(Rectangle())
@@ -74,6 +75,7 @@ struct CaptionView: View {
                 .padding(.leading, M.captionLeading)
                 .frame(width: w, alignment: .leading)
                 .position(x: w / 2, y: b - M.musicLineFromBottom)
+                .opacity(Theme.showMusic ? 1 : 0)
             }
         }
     }

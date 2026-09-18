@@ -1,60 +1,63 @@
 //  FeedView.swift
-//  首页：全屏视频 + 上下滑动切换 + 右侧操作栏 + 左下文案 + 顶栏 + 底栏
+//  首页：全屏视频流（数据来自后台）+ 顶栏 + 右侧操作栏 + 左下文案 + 底栏
 
 import SwiftUI
 
 struct FeedScreen: View {
     @Binding var bottomTab: Int
+    @StateObject var model = FeedModel()
     @State var index = 0
     @State var dragY: CGFloat = 0
-    @State var liked: Set<Int> = []
-    @State var starred: Set<Int> = []
     @State var burst = false
-    @State var topTab = 6
     @State var showSearch = false
     @State var showSameStyle = false
     @State var showMusic = false
-    @State var showMenu = false
     @State var showComments = false
+    @State var showServer = false
 
-    private var video: Video { Store.videos[index] }
+    private var video: Video {
+        model.items.indices.contains(index) ? model.items[index] : Store.videos[0]
+    }
 
     var body: some View {
         ZStack {
-            // chrome 按安全区排布，视频层作为背景铺满整屏（含状态栏、Home 指示条下面）
             chrome.background(videoLayer)
             if burst {
                 HeartShape()
-                    .fill(C.red)
+                    .fill(Theme.primary)
                     .frame(width: 110, height: 100)
                     .transition(.scale(scale: 0.3).combined(with: .opacity))
             }
         }
+        .task { await model.bootstrap() }
         .sheet(isPresented: $showSearch) { SearchPage(onClose: { showSearch = false }) }
-        .sheet(isPresented: $showComments) {
-            SheetPage(title: "\(video.comments) 条评论", subtitle: video.caption,
-                      onClose: { showComments = false })
+        .sheet(isPresented: $showSameStyle) {
+            SheetPage(title: "拍同款", onClose: { showSameStyle = false })
         }
-        .sheet(isPresented: $showSameStyle) { SheetPage(title: "拍同款", onClose: { showSameStyle = false }) }
         .sheet(isPresented: $showMusic) {
-            SheetPage(title: video.musicTitle, subtitle: video.musicLine, onClose: { showMusic = false })
+            SheetPage(title: video.musicTitle, subtitle: video.musicLine,
+                      onClose: { showMusic = false })
         }
-        .sheet(isPresented: $showMenu) { SheetPage(title: "菜单", onClose: { showMenu = false }) }
+        .sheet(isPresented: $showComments) {
+            CommentsSheet(model: model, video: video, isPresented: $showComments)
+        }
+        .sheet(isPresented: $showServer) {
+            ServerSheet(model: model, isPresented: $showServer)
+        }
     }
 
-    // MARK: - 视频层（铺满整屏，含状态栏和 Home 指示条下面）
+    // MARK: - 视频层
 
     private var videoLayer: some View {
         GeometryReader { geo in
             let h = geo.size.height
             ZStack {
                 Color.black
-                ForEach(Store.videos) { v in
-                    VideoCanvas(video: v, isActive: v.id == index)
+                ForEach(model.items) { v in
+                    VideoCanvas(video: v, isActive: v.id == model.items[safeIndex].id)
                         .frame(width: geo.size.width, height: h)
-                        .offset(y: CGFloat(v.id - index) * h + dragY)
+                        .offset(y: CGFloat(v.id - model.items[safeIndex].id) * h + dragY)
                 }
-                // 上下一点点渐暗，保证白字清楚
                 VStack(spacing: 0) {
                     LinearGradient(colors: [Color.black.opacity(0.22), Color.clear],
                                    startPoint: .top, endPoint: .bottom)
@@ -80,7 +83,7 @@ struct FeedScreen: View {
                         let predicted = value.predictedEndTranslation.height
                         var next = index
                         if dy < -60 || predicted < -200 {
-                            next = min(index + 1, Store.videos.count - 1)
+                            next = min(index + 1, model.items.count - 1)
                         } else if dy > 60 || predicted > 200 {
                             next = max(index - 1, 0)
                         }
@@ -88,50 +91,68 @@ struct FeedScreen: View {
                             index = next
                             dragY = 0
                         }
+                        if next != index {
+                            burst = false
+                        }
+                        model.reportPlay(video)
+                        model.loadMoreIfNeeded(next)
                     }
             )
         }
         .ignoresSafeArea()
     }
 
+    private var safeIndex: Int {
+        model.items.isEmpty ? 0 : min(index, model.items.count - 1)
+    }
+
     // MARK: - 上层 UI
 
     private var chrome: some View {
         ZStack {
-            TopBar(tabs: ["热点", "直播", "团购", "无锡", "关注", "商城", "推荐"],
-                   selected: $topTab,
-                   onSearch: { showSearch = true },
-                   onMenu: { showMenu = true })
+            if Theme.showTopTabs {
+                TopBar(tabs: model.tabs,
+                       selected: $model.tabIndex,
+                       onSelect: { i in
+                           index = 0
+                           Task { await model.selectTab(i) }
+                       },
+                       onSearch: { showSearch = true },
+                       onMenu: { showServer = true })
+            } else {
+                GeometryReader { g in
+                    SearchIcon(size: M.searchSize)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                        .onTapGesture { showSearch = true }
+                        .position(x: g.size.width - M.searchCenterTrailing, y: M.topBarCenterBelowSafeTop)
+                }
+            }
 
             RailView(video: video,
-                     liked: Binding(get: { liked.contains(index) },
-                                    set: { on in if on { liked.insert(index) } else { liked.remove(index) } }),
-                     starred: Binding(get: { starred.contains(index) },
-                                      set: { on in if on { starred.insert(index) } else { starred.remove(index) } }),
-                     onComment: { showComments = true },
-                     onShare: { },
+                     onLike: { Task { await model.like(safeIndex) } },
+                     onStar: { Task { await model.favorite(safeIndex) } },
+                     onComment: {
+                         showComments = true
+                         Task { await model.loadComments(video) }
+                     },
+                     onShare: { Task { await model.share(safeIndex) } },
+                     onFollow: { Task { await model.follow(safeIndex) } },
                      onSameStyle: { showSameStyle = true })
 
             CaptionView(video: video,
                         onRecommend: { },
                         onMusic: { showMusic = true })
 
-            BottomBar(selected: $bottomTab, unread: "65", onPlus: { showSameStyle = true })
+            BottomBar(selected: $bottomTab, unread: model.unread, onPlus: { showSameStyle = true })
         }
     }
 
     private func like() {
-        liked.insert(index)
         withAnimation(.easeOut(duration: 0.12)) { burst = true }
+        Task { await model.like(safeIndex) }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
             withAnimation(.easeIn(duration: 0.2)) { burst = false }
         }
-    }
-}
-
-/// 双击点赞时中间那个大红心
-struct BurstHeart: View {
-    var body: some View {
-        HeartShape().fill(C.red).frame(width: 110, height: 100)
     }
 }

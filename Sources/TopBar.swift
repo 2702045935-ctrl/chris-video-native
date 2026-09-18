@@ -6,6 +6,7 @@ import SwiftUI
 struct TopBar: View {
     let tabs: [String]
     @Binding var selected: Int
+    var onSelect: (Int) -> Void
     var onSearch: () -> Void
     var onMenu: () -> Void
 
@@ -33,9 +34,10 @@ struct TopBar: View {
                         ForEach(0..<tabs.count, id: \.self) { i in
                             Button {
                                 selected = i
+                                onSelect(i)
                             } label: {
                                 Text(tabs[i])
-                                    .font(pf(i == selected ? M.tabFontActive : M.tabFontIdle,
+                                    .font(pf(i == selected ? Theme.tabFontActive : Theme.tabFont,
                                                i == selected ? .bold : .regular))
                                     .foregroundColor(i == selected ? C.white : C.tabIdle)
                                     .frame(width: M.tabItemWidth, height: M.topBarHeight)

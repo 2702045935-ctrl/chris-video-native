@@ -49,7 +49,7 @@ struct BottomBar: View {
                         .font(pf(M.badgeFont, .semibold))
                         .foregroundColor(.white)
                         .frame(width: M.badgeWidth, height: M.badgeHeight)
-                        .background(Capsule().fill(C.red))
+                        .background(Capsule().fill(Theme.primary))
                         .contentShape(Rectangle())
                 }
                 .position(x: M.badgeCenterX * scale, y: b - M.badgeAboveBottom)
@@ -67,7 +67,7 @@ struct BottomBar: View {
             selected = target
         } label: {
             Text(text)
-                .font(pf(M.bottomLabelFont, active ? .semibold : .regular))
+                .font(pf(Theme.barFont, active ? .semibold : .regular))
                 .foregroundColor(active ? C.white : C.barIdle)
                 .padding(.horizontal, 8)
                 .frame(height: 34)
