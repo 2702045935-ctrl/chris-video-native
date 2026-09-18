@@ -127,76 +127,101 @@ struct TabPage: View {
     @ViewBuilder
     private var content: some View {
         switch index {
-        case 1:
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 2), GridItem(.flexible(), spacing: 2)],
-                      spacing: 2) {
+        case 1: friendsContent
+        case 3: messageContent
+        default: meContent
+        }
+    }
+
+    private var grid2: [GridItem] {
+        [GridItem(.flexible(), spacing: 2), GridItem(.flexible(), spacing: 2)]
+    }
+
+    private var friendsContent: some View {
+        LazyVGrid(columns: grid2, spacing: 2) {
+            ForEach(Store.videos) { v in
+                posterCell(v)
+            }
+        }
+    }
+
+    private var messageContent: some View {
+        VStack(spacing: 0) {
+            ForEach(Store.videos) { v in
+                HStack(spacing: 12) {
+                    AvatarView(name: "avatar-01")
+                        .frame(width: 46, height: 46)
+                        .clipShape(Circle())
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(v.author).font(pf(15, .medium)).foregroundColor(.white)
+                        Text(v.caption).font(pf(13)).foregroundColor(Color(white: 0.55)).lineLimit(1)
+                    }
+                    Spacer()
+                    Text("刚刚").font(pf(12)).foregroundColor(Color(white: 0.4))
+                }
+                .padding(.horizontal, 16)
+                .frame(height: 72)
+            }
+        }
+    }
+
+    private var meContent: some View {
+        VStack(spacing: 16) {
+            meHeader
+            HStack(spacing: 26) {
+                stat(auth.isLoggedIn ? String(auth.user?.followCount ?? 0) : "—", "关注")
+                stat(auth.isLoggedIn ? String(auth.user?.fanCount ?? 0) : "—", "粉丝")
+                stat(auth.isLoggedIn ? String(auth.user?.likeTotal ?? 0) : "—", "获赞")
+                Spacer()
+            }
+            .padding(.horizontal, 18)
+            LazyVGrid(columns: grid2, spacing: 2) {
                 ForEach(Store.videos) { v in
                     posterCell(v)
                 }
             }
-        case 3:
-            VStack(spacing: 0) {
-                ForEach(Store.videos) { v in
-                    HStack(spacing: 12) {
-                        AvatarView(name: "avatar-01")
-                            .frame(width: 46, height: 46)
-                            .clipShape(Circle())
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(v.author).font(pf(15, .medium)).foregroundColor(.white)
-                            Text(v.caption).font(pf(13)).foregroundColor(Color(white: 0.55)).lineLimit(1)
-                        }
-                        Spacer()
-                        Text("刚刚").font(pf(12)).foregroundColor(Color(white: 0.4))
-                    }
-                    .padding(.horizontal, 16)
-                    .frame(height: 72)
-                }
+        }
+    }
+
+    private var meHeader: some View {
+        HStack(spacing: 14) {
+            AvatarView(name: avatarName)
+                .frame(width: 64, height: 64)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color.white.opacity(0.85), lineWidth: 2))
+            VStack(alignment: .leading, spacing: 6) {
+                Text(auth.user?.name ?? "未登录")
+                    .font(pf(17, .semibold))
+                    .foregroundColor(.white)
+                Text(subtitleText)
+                    .font(pf(12))
+                    .foregroundColor(Color(white: 0.5))
             }
-        default:
-            VStack(spacing: 16) {
-                HStack(spacing: 14) {
-                    AvatarView(name: auth.user?.avatar?.isEmpty == false ? (auth.user?.avatar ?? "") : "avatar-01")
-                        .frame(width: 64, height: 64)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.white.opacity(0.85), lineWidth: 2))
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(auth.user?.name ?? (auth.isLoggedIn ? "@我" : "未登录"))
-                            .font(pf(17, .semibold)).foregroundColor(.white)
-                        Text(auth.isLoggedIn
-                             ? ("抖音号：" + (auth.user?.douyinId ?? "") + " · " + (auth.user?.phone ?? ""))
-                             : "登录后可以点赞、评论、关注")
-                            .font(pf(12)).foregroundColor(Color(white: 0.5))
-                    }
-                    Spacer()
-                    if auth.isLoggedIn {
-                        Button {
-                            Task { await auth.logout() }
-                        } label: {
-                            Text("退出")
-                                .font(pf(13))
-                                .foregroundColor(Color(white: 0.6))
-                                .padding(.horizontal, 12)
-                                .frame(height: 32)
-                                .background(Capsule().fill(Color(white: 0.14)))
-                        }
-                    }
-                }
-                .padding(.horizontal, 18)
-                HStack(spacing: 26) {
-                    stat("138", "关注")
-                    stat("1.2万", "粉丝")
-                    stat("8.6万", "获赞")
-                    Spacer()
-                }
-                .padding(.horizontal, 18)
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 2), GridItem(.flexible(), spacing: 2)],
-                          spacing: 2) {
-                    ForEach(Store.videos) { v in
-                        posterCell(v)
-                    }
+            Spacer()
+            if auth.isLoggedIn {
+                Button {
+                    Task { await auth.logout() }
+                } label: {
+                    Text("退出")
+                        .font(pf(13))
+                        .foregroundColor(Color(white: 0.6))
+                        .padding(.horizontal, 12)
+                        .frame(height: 32)
+                        .background(Capsule().fill(Color(white: 0.14)))
                 }
             }
         }
+        .padding(.horizontal, 18)
+    }
+
+    private var avatarName: String {
+        if let a = auth.user?.avatar, !a.isEmpty { return a }
+        return "avatar-01"
+    }
+
+    private var subtitleText: String {
+        guard auth.isLoggedIn else { return "登录后可以点赞、评论、关注" }
+        return "抖音号：" + (auth.user?.douyinId ?? "")
     }
 
     private func stat(_ n: String, _ t: String) -> some View {
