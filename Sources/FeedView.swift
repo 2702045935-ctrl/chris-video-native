@@ -5,6 +5,7 @@ import SwiftUI
 
 struct FeedScreen: View {
     @Binding var bottomTab: Int
+    @Binding var showLogin: Bool
     @StateObject var model = FeedModel()
     @Environment(\.scenePhase) private var scenePhase
     @State var index = 0
@@ -239,14 +240,27 @@ struct FeedScreen: View {
             }
 
             RailView(video: video,
-                     onLike: { Task { await model.like(safeIndex) } },
-                     onStar: { Task { await model.favorite(safeIndex) } },
+                     onLike: {
+                         guard requireLogin() else { return }
+                         Task { await model.like(safeIndex) }
+                     },
+                     onStar: {
+                         guard requireLogin() else { return }
+                         Task { await model.favorite(safeIndex) }
+                     },
                      onComment: {
+                         guard requireLogin() else { return }
                          showComments = true
                          Task { await model.loadComments(video) }
                      },
-                     onShare: { Task { await model.share(safeIndex) } },
-                     onFollow: { Task { await model.follow(safeIndex) } },
+                     onShare: {
+                         guard requireLogin() else { return }
+                         Task { await model.share(safeIndex) }
+                     },
+                     onFollow: {
+                         guard requireLogin() else { return }
+                         Task { await model.follow(safeIndex) }
+                     },
                      onSameStyle: { showSameStyle = true })
 
             CaptionView(video: video,
@@ -260,10 +274,19 @@ struct FeedScreen: View {
     }
 
     private func like() {
+        guard requireLogin() else { return }
         withAnimation(.easeOut(duration: 0.12)) { burst = true }
         Task { await model.like(safeIndex) }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
             withAnimation(.easeIn(duration: 0.2)) { burst = false }
         }
+    }
+
+    /// 游客模式下点赞/评论/关注先要求登录（跟抖音一样：不登录能刷，互动要登录）
+    private func requireLogin() -> Bool {
+        if Auth.shared.isLoggedIn { return true }
+        Auth.shared.lastError = ""
+        showLogin = true
+        return false
     }
 }

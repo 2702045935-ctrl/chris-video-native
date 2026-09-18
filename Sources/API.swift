@@ -176,6 +176,7 @@ struct Api {
         var req = URLRequest(url: u)
         req.timeoutInterval = 6
         req.setValue(ServerConfig.viewer, forHTTPHeaderField: "X-Viewer")
+        if !Auth.shared.token.isEmpty { req.setValue(Auth.shared.token, forHTTPHeaderField: "X-Token") }
         let (data, _) = try await URLSession.shared.data(for: req)
         return try JSONDecoder().decode(T.self, from: data)
     }
@@ -187,6 +188,7 @@ struct Api {
         req.timeoutInterval = 6
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.setValue(ServerConfig.viewer, forHTTPHeaderField: "X-Viewer")
+        if !Auth.shared.token.isEmpty { req.setValue(Auth.shared.token, forHTTPHeaderField: "X-Token") }
         req.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
         let (data, _) = try await URLSession.shared.data(for: req)
         return try JSONDecoder().decode(T.self, from: data)

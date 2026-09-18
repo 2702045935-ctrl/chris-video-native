@@ -89,6 +89,7 @@ struct SheetPage: View {
 struct TabPage: View {
     let index: Int
     @Binding var selected: Int
+    @ObservedObject var auth = Auth.shared
 
     let titles = ["首页", "朋友", "", "消息", "我"]
 
@@ -154,15 +155,31 @@ struct TabPage: View {
         default:
             VStack(spacing: 16) {
                 HStack(spacing: 14) {
-                    AvatarView(name: "avatar-01")
+                    AvatarView(name: auth.user?.avatar?.isEmpty == false ? (auth.user?.avatar ?? "") : "avatar-01")
                         .frame(width: 64, height: 64)
                         .clipShape(Circle())
                         .overlay(Circle().stroke(Color.white.opacity(0.85), lineWidth: 2))
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("@明澈").font(pf(17, .semibold)).foregroundColor(.white)
-                        Text("抖音号：mingche_2026").font(pf(12)).foregroundColor(Color(white: 0.5))
+                        Text(auth.user?.name ?? (auth.isLoggedIn ? "@我" : "未登录"))
+                            .font(pf(17, .semibold)).foregroundColor(.white)
+                        Text(auth.isLoggedIn
+                             ? ("抖音号：" + (auth.user?.douyinId ?? "") + " · " + (auth.user?.phone ?? ""))
+                             : "登录后可以点赞、评论、关注")
+                            .font(pf(12)).foregroundColor(Color(white: 0.5))
                     }
                     Spacer()
+                    if auth.isLoggedIn {
+                        Button {
+                            Task { await auth.logout() }
+                        } label: {
+                            Text("退出")
+                                .font(pf(13))
+                                .foregroundColor(Color(white: 0.6))
+                                .padding(.horizontal, 12)
+                                .frame(height: 32)
+                                .background(Capsule().fill(Color(white: 0.14)))
+                        }
+                    }
                 }
                 .padding(.horizontal, 18)
                 HStack(spacing: 26) {
