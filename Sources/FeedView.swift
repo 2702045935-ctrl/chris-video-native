@@ -50,7 +50,7 @@ struct FeedScreen: View {
             ZStack {
                 Color.black
                 ForEach(Store.videos) { v in
-                    VideoCanvas(video: v)
+                    VideoCanvas(video: v, isActive: v.id == index)
                         .frame(width: geo.size.width, height: h)
                         .offset(y: CGFloat(v.id - index) * h + dragY)
                 }
