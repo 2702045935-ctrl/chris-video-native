@@ -128,6 +128,7 @@ struct ServerSheet: View {
     @State var addr = ServerConfig.base
     @State var result = ""
     @State var busy = false
+    @State var soundOn = !Theme.muted
 
     var body: some View {
         ZStack {
@@ -176,6 +177,23 @@ struct ServerSheet: View {
                 Text(result.isEmpty ? model.status : result)
                     .font(pf(12.5))
                     .foregroundColor(model.online ? Color(red: 0.2, green: 0.8, blue: 0.4) : Color(white: 0.55))
+                Divider().background(Color(white: 0.2))
+                Toggle(isOn: $soundOn) {
+                    Text("播放声音")
+                        .font(pf(14))
+                        .foregroundColor(.white)
+                }
+                .onChange(of: soundOn) { on in
+                    Theme.muted = !on
+                    Audio.activate()
+                    model.setMutedFromApp(!on)
+                }
+                Text(Theme.muted ? "现在是静音" : "现在有声（后台「静音」开关也会同步关掉）")
+                    .font(pf(12))
+                    .foregroundColor(Color(white: 0.5))
+                Text("版本 " + M.build)
+                    .font(pf(11.5))
+                    .foregroundColor(Color(white: 0.38))
                 Spacer()
             }
             .padding(20)

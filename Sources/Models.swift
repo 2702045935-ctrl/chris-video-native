@@ -154,10 +154,42 @@ struct VideoCanvas: View {
             .frame(width: geo.size.width, height: geo.size.height)
             .clipped()
             .onAppear {
-                withAnimation(.easeInOut(duration: 9).repeatForever(autoreverses: true)) {
-                    zoom = 1.07
+                // 没有视频、只显示封面时才做缓慢推近；有视频就别白烧 GPU
+                if Store.videoURL(video.clip) == nil {
+                    withAnimation(.easeInOut(duration: 9).repeatForever(autoreverses: true)) {
+                        zoom = 1.07
+                    }
                 }
             }
+        }
+        .ignoresSafeArea()
+    }
+}
+
+/// 离当前这条比较远的视频只画封面（不开播放器，滑动才不卡）
+struct PosterOnly: View {
+    let video: Video
+
+    var body: some View {
+        GeometryReader { geo in
+            Group {
+                if video.poster.hasPrefix("http") {
+                    AsyncImage(url: URL(string: video.poster)) { phase in
+                        switch phase {
+                        case .success(let img):
+                            img.resizable().aspectRatio(contentMode: .fill)
+                        default:
+                            Color(white: 0.08)
+                        }
+                    }
+                } else if let img = Store.image(video.poster) {
+                    Image(uiImage: img).resizable().aspectRatio(contentMode: .fill)
+                } else {
+                    Color(white: 0.08)
+                }
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+            .clipped()
         }
         .ignoresSafeArea()
     }

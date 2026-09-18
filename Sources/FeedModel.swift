@@ -78,6 +78,13 @@ final class FeedModel: ObservableObject {
         pollTimer = nil
     }
 
+    /// App 里手动关了/开了声音：写回后台，别的设备也跟着一致
+    func setMutedFromApp(_ muted: Bool) {
+        Task {
+            _ = try? await Api.post("/api/settings/muted", body: ["muted": muted], as: MutedResult.self)
+        }
+    }
+
     func checkVersion() async {
         guard let v = try? await Api.get("/api/version", as: VersionResponse.self) else {
             if online { online = false; status = "与后台断开，稍后自动重连" }

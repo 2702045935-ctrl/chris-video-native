@@ -23,6 +23,8 @@ enum C {
 // MARK: - 尺寸（pt，参考图 @3x 除 3）
 
 enum M {
+    /// 版本标记：出问题时对照这个字符串确认装的是哪一版
+    static let build = "2026-09-19 01:15 出声+省电版"
     /// 参考画画布
     static let refW: CGFloat = 420
     static let refH: CGFloat = 912

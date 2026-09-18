@@ -45,6 +45,7 @@ struct FeedScreen: View {
         }
         .onChange(of: scenePhase) { phase in
             if phase == .active {
+                Audio.activate()          // 回到前台重新占上音频会话，保证还有声
                 Task { await model.bootstrap() }
             } else {
                 model.stopPolling()
@@ -138,9 +139,16 @@ struct FeedScreen: View {
             ZStack {
                 Color.black
                 ForEach(model.items) { v in
-                    VideoCanvas(video: v, isActive: v.id == model.items[safeIndex].id)
-                        .frame(width: geo.size.width, height: h)
-                        .offset(y: CGFloat(v.id - model.items[safeIndex].id) * h + dragY)
+                    // 只给「当前这条 + 前后各一条」真开播放器，其他只画封面 —— 一屏 5 个播放器会卡
+                    Group {
+                        if abs(v.id - model.items[safeIndex].id) <= 1 {
+                            VideoCanvas(video: v, isActive: v.id == model.items[safeIndex].id)
+                        } else {
+                            PosterOnly(video: v)
+                        }
+                    }
+                    .frame(width: geo.size.width, height: h)
+                    .offset(y: CGFloat(v.id - model.items[safeIndex].id) * h + dragY)
                 }
                 VStack(spacing: 0) {
                     LinearGradient(colors: [Color.black.opacity(0.22), Color.clear],

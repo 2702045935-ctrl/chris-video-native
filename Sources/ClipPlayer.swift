@@ -5,6 +5,19 @@ import AVFoundation
 import SwiftUI
 import UIKit
 
+/// 音频会话：设成「播放」类，手机侧边静音键拨下去也照样出声（抖音就是这么做的）
+enum Audio {
+    static func activate() {
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .moviePlayback, options: [])
+            try session.setActive(true)
+        } catch {
+            // 失败不影响界面，最多是静音键拨下去没声
+        }
+    }
+}
+
 struct ClipPlayer: UIViewRepresentable {
     let url: URL
     let isActive: Bool
@@ -38,9 +51,11 @@ final class PlayerContainerView: UIView {
     private var playerLayer: AVPlayerLayer? { layer as? AVPlayerLayer }
 
     func load(url: URL, muted: Bool) {
+        Audio.activate()
         let item = AVPlayerItem(url: url)
         let p = AVPlayer(playerItem: item)
         p.isMuted = muted
+        p.volume = 1
         p.actionAtItemEnd = .none
         player = p
         playerLayer?.videoGravity = .resizeAspectFill

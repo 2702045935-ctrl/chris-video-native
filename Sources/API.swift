@@ -154,6 +154,10 @@ struct OneComment: Codable {
     var comment: CommentItem?
 }
 
+struct MutedResult: Codable {
+    var muted: Bool?
+}
+
 enum ApiError: Error {
     case badURL
 }
