@@ -18,20 +18,10 @@ struct BottomBar: View {
             let y = b - M.bottomBarFromBottom
 
             ZStack(alignment: .topLeading) {
-                ForEach(0..<4, id: \.self) { i in
-                    let cx = M.bottomItemCenters[i] * scale
-                    Button {
-                        selected = i < 2 ? i : i + 1
-                    } label: {
-                        Text(labels[i])
-                            .font(font(M.bottomLabelFont, i == 0 ? .semibold : .regular))
-                            .foregroundColor(i == 0 ? C.white : C.barIdle)
-                            .padding(.horizontal, 8)
-                            .frame(height: 34)
-                            .contentShape(Rectangle())
-                    }
-                    .position(x: cx, y: y)
-                }
+                barLabel(0, scale: scale, y: y)
+                barLabel(1, scale: scale, y: y)
+                barLabel(2, scale: scale, y: y)
+                barLabel(3, scale: scale, y: y)
 
                 // 首页后面那个小标记
                 ChevronIcon(size: 7, thickness: 1.7, direction: .down, color: C.barIdle)
@@ -64,19 +54,25 @@ struct BottomBar: View {
                 }
                 .position(x: M.badgeCenterX * scale, y: b - M.badgeAboveBottom)
 
-                // 我
-                Button {
-                    selected = 4
-                } label: {
-                    Text(labels[4])
-                        .font(font(M.bottomLabelFont))
-                        .foregroundColor(C.barIdle)
-                        .padding(.horizontal, 8)
-                        .frame(height: 34)
-                        .contentShape(Rectangle())
-                }
-                .position(x: M.bottomItemCenters[3] * scale, y: y)
             }
         }
+    }
+
+    /// 0/1 → 首页、朋友；2 → 消息；3 → 我
+    private func barLabel(_ i: Int, scale: CGFloat, y: CGFloat) -> some View {
+        let text = labels[i == 0 ? 0 : (i == 1 ? 1 : (i == 2 ? 3 : 4))]
+        let target = i < 2 ? i : i + 1
+        let active = i == 0
+        return Button {
+            selected = target
+        } label: {
+            Text(text)
+                .font(font(M.bottomLabelFont, active ? .semibold : .regular))
+                .foregroundColor(active ? C.white : C.barIdle)
+                .padding(.horizontal, 8)
+                .frame(height: 34)
+                .contentShape(Rectangle())
+        }
+        .position(x: M.bottomItemCenters[i] * scale, y: y)
     }
 }
