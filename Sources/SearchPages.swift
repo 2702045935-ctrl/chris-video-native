@@ -113,26 +113,7 @@ struct SearchPage2: View {
                     Text("抖音热搜").font(pf(14.5, .semibold)).foregroundColor(.white)
                         .padding(.bottom, 8)
                     ForEach(hot) { h in
-                        Button { search(h.word) } label: {
-                            HStack(spacing: 12) {
-                                Text(String(h.rank))
-                                    .font(pf(14, .semibold))
-                                    .foregroundColor(rankColor(h.rank))
-                                    .frame(width: 20, alignment: .leading)
-                                Text(h.word).font(pf(14.5)).foregroundColor(.white)
-                                if h.top == true {
-                                    Text("热").font(pf(10, .semibold)).foregroundColor(.white)
-                                        .padding(.horizontal, 4).frame(height: 15)
-                                        .background(RoundedRectangle(cornerRadius: 3).fill(Theme.primary))
-                                }
-                                Spacer()
-                                if let n = h.hot {
-                                    Text(humanCount(n)).font(pf(12)).foregroundColor(Color(white: 0.45))
-                                }
-                            }
-                            .frame(height: 42)
-                            .contentShape(Rectangle())
-                        }
+                        HotRow(item: h) { search(h.word) }
                         if h.rank < hot.count { Divider().background(Color(white: 0.1)) }
                     }
                 }
@@ -183,25 +164,7 @@ struct SearchPage2: View {
             VStack(spacing: 0) {
                 if users.isEmpty { emptyRow("没有找到相关用户") }
                 ForEach(users) { u in
-                    HStack(spacing: 12) {
-                        AvatarView(name: u.avatar ?? "")
-                            .frame(width: 48, height: 48)
-                            .clipShape(Circle())
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(u.name).font(pf(15, .medium)).foregroundColor(.white)
-                            Text("抖音号：" + (u.douyinId ?? "") + " · " + (u.fanText ?? "0") + " 粉丝")
-                                .font(pf(12)).foregroundColor(Color(white: 0.5))
-                        }
-                        Spacer()
-                        Text("关注")
-                            .font(pf(13, .medium))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 14)
-                            .frame(height: 30)
-                            .background(Capsule().fill(Theme.primary))
-                    }
-                    .padding(.horizontal, 16)
-                    .frame(height: 72)
+                    UserResultRow(user: u)
                 }
             }
         }
@@ -212,20 +175,7 @@ struct SearchPage2: View {
             VStack(spacing: 0) {
                 if topics.isEmpty { emptyRow("没有找到相关话题") }
                 ForEach(topics) { t in
-                    HStack(spacing: 12) {
-                        Image(systemName: "number")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(Theme.primary)
-                            .frame(width: 44, height: 44)
-                            .background(Circle().fill(Color(white: 0.13)))
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("# " + t.name).font(pf(15, .medium)).foregroundColor(.white)
-                            Text(humanCount(t.count ?? 0) + " 次播放").font(pf(12)).foregroundColor(Color(white: 0.5))
-                        }
-                        Spacer()
-                    }
-                    .padding(.horizontal, 16)
-                    .frame(height: 68)
+                    TopicResultRow(topic: t)
                 }
             }
         }
@@ -272,6 +222,110 @@ struct SearchPage2: View {
         if let r = try? await Api.get("/api/search/hot", as: HotWrap.self) {
             hot = r.items ?? []
         }
+    }
+}
+
+/// 热搜榜的一行
+struct HotRow: View {
+    let item: SearchPage2.HotItem
+    var onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 12) {
+                Text(String(item.rank))
+                    .font(pf(14, .semibold))
+                    .foregroundColor(rankColor)
+                    .frame(width: 20, alignment: .leading)
+                Text(item.word).font(pf(14.5)).foregroundColor(.white)
+                if item.top == true {
+                    Text("热")
+                        .font(pf(10, .semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 4)
+                        .frame(height: 15)
+                        .background(RoundedRectangle(cornerRadius: 3).fill(Theme.primary))
+                }
+                Spacer()
+                if let n = item.hot {
+                    Text(hotText(n)).font(pf(12)).foregroundColor(Color(white: 0.45))
+                }
+            }
+            .frame(height: 42)
+            .contentShape(Rectangle())
+        }
+    }
+
+    private var rankColor: Color {
+        switch item.rank {
+        case 1: return Color(red: 1, green: 0.3, blue: 0.35)
+        case 2: return Color(red: 1, green: 0.6, blue: 0.2)
+        case 3: return Color(red: 1, green: 0.8, blue: 0.25)
+        default: return Color(white: 0.5)
+        }
+    }
+
+    private func hotText(_ n: Int) -> String {
+        if n >= 10000 { return String(format: "%.1f万", Double(n) / 10000) }
+        return String(n)
+    }
+}
+
+/// 搜索结果里的一行用户
+struct UserResultRow: View {
+    let user: SearchPage2.UserRow
+
+    var body: some View {
+        HStack(spacing: 12) {
+            AvatarView(name: user.avatar ?? "")
+                .frame(width: 48, height: 48)
+                .clipShape(Circle())
+            VStack(alignment: .leading, spacing: 4) {
+                Text(user.name).font(pf(15, .medium)).foregroundColor(.white)
+                Text(subtitle).font(pf(12)).foregroundColor(Color(white: 0.5))
+            }
+            Spacer()
+            Text("关注")
+                .font(pf(13, .medium))
+                .foregroundColor(.white)
+                .padding(.horizontal, 14)
+                .frame(height: 30)
+                .background(Capsule().fill(Theme.primary))
+        }
+        .padding(.horizontal, 16)
+        .frame(height: 72)
+    }
+
+    private var subtitle: String {
+        "抖音号：" + (user.douyinId ?? "") + " · " + (user.fanText ?? "0") + " 粉丝"
+    }
+}
+
+/// 搜索结果里的一行话题
+struct TopicResultRow: View {
+    let topic: SearchPage2.TopicRow
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "number")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(Theme.primary)
+                .frame(width: 44, height: 44)
+                .background(Circle().fill(Color(white: 0.13)))
+            VStack(alignment: .leading, spacing: 4) {
+                Text("# " + topic.name).font(pf(15, .medium)).foregroundColor(.white)
+                Text(countText).font(pf(12)).foregroundColor(Color(white: 0.5))
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .frame(height: 68)
+    }
+
+    private var countText: String {
+        let n = topic.count ?? 0
+        if n >= 10000 { return String(format: "%.1f万 次播放", Double(n) / 10000) }
+        return "\(n) 次播放"
     }
 }
 
