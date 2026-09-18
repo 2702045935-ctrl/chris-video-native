@@ -19,6 +19,8 @@ struct FeedScreen: View {
     @State var showServer = false
     @State var showDislike = false
     @State var showShare = false
+    @State var shopRoute: ShopRoute?
+    @State var showLiveList = false
 
     private var video: Video {
         model.items.indices.contains(index) ? model.items[index] : Store.videos[0]
@@ -75,6 +77,12 @@ struct FeedScreen: View {
         }
         .sheet(isPresented: $showShare) {
             ShareSheet(video: video, onClose: { showShare = false })
+        }
+        .fullScreenCover(item: $shopRoute) { r in
+            ShopPage(onClose: { shopRoute = nil }, initialTag: r.tag)
+        }
+        .fullScreenCover(isPresented: $showLiveList) {
+            LiveListPage(onClose: { showLiveList = false })
         }
     }
 
@@ -223,6 +231,10 @@ struct FeedScreen: View {
                        onSelect: { i in
                            index = 0
                            Task { await model.selectTab(i) }
+                           let name = model.tabs.indices.contains(i) ? model.tabs[i] : ""
+                           if name == "商城" { shopRoute = ShopRoute(tag: "全部") }
+                           if name == "团购" { shopRoute = ShopRoute(tag: "团购") }
+                           if name == "直播" { showLiveList = true }
                        },
                        onSearch: { onOpenSearch() },
                        onMenu: { showServer = true })

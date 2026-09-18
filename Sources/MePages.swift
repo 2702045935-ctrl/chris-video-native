@@ -13,6 +13,7 @@ struct MePage: View {
     @State private var showSettings = false
     @State private var showHistory = false
     @State private var showWallet = false
+    @State private var showOrders = false
     @State private var showFriends = false
 
     var body: some View {
@@ -35,6 +36,7 @@ struct MePage: View {
         .fullScreenCover(isPresented: $showSettings) { SettingsPage(onClose: { showSettings = false }, showLogin: $showLogin) }
         .fullScreenCover(isPresented: $showHistory) { HistoryPage(onClose: { showHistory = false }) }
         .fullScreenCover(isPresented: $showWallet) { WalletPage(onClose: { showWallet = false }) }
+        .fullScreenCover(isPresented: $showOrders) { OrdersPage(onClose: { showOrders = false }) }
         .fullScreenCover(isPresented: $showFriends) { FriendListPage(onClose: { showFriends = false }) }
     }
 
@@ -105,6 +107,14 @@ struct MePage: View {
             }
             Button { showWallet = true } label: {
                 Label("钱包", systemImage: "creditcard")
+                    .font(pf(14, .medium))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 38)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color(white: 0.15)))
+            }
+            Button { showOrders = true } label: {
+                Label("订单", systemImage: "bag")
                     .font(pf(14, .medium))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
@@ -274,6 +284,11 @@ struct SettingsPage: View {
     @ObservedObject var auth = Auth.shared
     @State private var autoPlay = true
     @State private var muted = false
+    @State private var teenMode = false
+    @State private var privacySearch = true
+    @State private var privacyRecommend = true
+    @State private var hideLikes = false
+    @State private var saveTip = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -290,10 +305,21 @@ struct SettingsPage: View {
                         toggleRow("静音", $muted)
                     }
                     group {
+                        toggleRow("青少年模式（不推直播/带货、限制时长）", $teenMode)
+                        toggleRow("允许别人搜到我", $privacySearch)
+                        toggleRow("把我推荐给可能认识的人", $privacyRecommend)
+                        toggleRow("隐藏我点赞过的作品", $hideLikes)
+                    }
+                    group {
                         row("清理缓存", "chevron.right")
-                        row("青少年模式", "chevron.right")
                         row("隐私设置", "chevron.right")
                         row("关于 CHRIS视频", "v1.0")
+                    }
+                    if !saveTip.isEmpty {
+                        Text(saveTip)
+                            .font(pf(12.5))
+                            .foregroundColor(Theme.primary)
+                            .padding(.top, 10)
                     }
                     if auth.isLoggedIn {
                         Button {
@@ -319,11 +345,36 @@ struct SettingsPage: View {
         .background(Color.black.ignoresSafeArea())
         .onAppear {
             muted = Theme.muted
+            teenMode = auth.user?.teenMode ?? false
+            privacySearch = auth.user?.privacySearch ?? true
+            privacyRecommend = auth.user?.privacyRecommend ?? true
+            hideLikes = auth.user?.hideLikes ?? false
         }
         .onChange(of: autoPlay) { _ in }
         .onChange(of: muted) { on in
             Theme.muted = on
             Task { _ = try? await Api.post("/api/settings/muted", body: ["muted": on], as: MutedResult.self) }
+        }
+        .onChange(of: teenMode) { on in save(teenMode: on) }
+        .onChange(of: privacySearch) { on in save(privacySearch: on) }
+        .onChange(of: privacyRecommend) { on in save(privacyRecommend: on) }
+        .onChange(of: hideLikes) { on in save(hideLikes: on) }
+    }
+
+    /// 开关一改就写回服务端（青少年模式会让推荐过滤掉直播/带货内容）
+    private func save(teenMode: Bool? = nil, privacySearch: Bool? = nil,
+                      privacyRecommend: Bool? = nil, hideLikes: Bool? = nil) {
+        var body: [String: Any] = [:]
+        if let t = teenMode { body["teenMode"] = t }
+        if let p = privacySearch { body["privacySearch"] = p }
+        if let p = privacyRecommend { body["privacyRecommend"] = p }
+        if let h = hideLikes { body["hideLikes"] = h }
+        guard !body.isEmpty else { return }
+        saveTip = "已保存"
+        Task {
+            _ = try? await Api.post("/api/auth/settings", body: body, as: AuthResult.self)
+            try? await Task.sleep(nanoseconds: 1_200_000_000)
+            saveTip = ""
         }
     }
 

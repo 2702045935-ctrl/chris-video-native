@@ -21,6 +21,10 @@ struct AuthUser: Codable {
     var verified: Bool?
     var loginCount: Int?
     var provider: String?
+    var teenMode: Bool?
+    var privacySearch: Bool?
+    var privacyRecommend: Bool?
+    var hideLikes: Bool?
 }
 
 struct AuthResult: Codable {
