@@ -6,6 +6,7 @@ import SwiftUI
 struct FeedScreen: View {
     @Binding var bottomTab: Int
     @StateObject var model = FeedModel()
+    @Environment(\.scenePhase) private var scenePhase
     @State var index = 0
     @State var dragY: CGFloat = 0
     @State var burst = false
@@ -21,7 +22,11 @@ struct FeedScreen: View {
 
     var body: some View {
         ZStack {
-            chrome.background(videoLayer)
+            if model.items.isEmpty {
+                emptyState
+            } else {
+                chrome.background(videoLayer)
+            }
             if burst {
                 HeartShape()
                     .fill(Theme.primary)
@@ -29,7 +34,22 @@ struct FeedScreen: View {
                     .transition(.scale(scale: 0.3).combined(with: .opacity))
             }
         }
-        .task { await model.bootstrap() }
+        .overlay(alignment: .top) {
+            if !model.items.isEmpty && !model.online {
+                offlineBanner
+            }
+        }
+        .task {
+            await model.bootstrap()
+            model.startPolling()
+        }
+        .onChange(of: scenePhase) { phase in
+            if phase == .active {
+                Task { await model.bootstrap() }
+            } else {
+                model.stopPolling()
+            }
+        }
         .sheet(isPresented: $showSearch) { SearchPage(onClose: { showSearch = false }) }
         .sheet(isPresented: $showSameStyle) {
             SheetPage(title: "拍同款", onClose: { showSameStyle = false })
@@ -44,6 +64,70 @@ struct FeedScreen: View {
         .sheet(isPresented: $showServer) {
             ServerSheet(model: model, isPresented: $showServer)
         }
+    }
+
+    /// 后台一条作品都没有时（比如刚删空 / 还没发布）
+    private var emptyState: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            VStack(spacing: 14) {
+                Text("这一栏还没有作品")
+                    .font(pf(17, .semibold))
+                    .foregroundColor(.white)
+                Text(model.online
+                     ? "去后台「作品发布」传一条，这边不用重启就会自己出现"
+                     : "现在连不上后台，先用本地演示数据兜底")
+                    .font(pf(13.5))
+                    .foregroundColor(Color(white: 0.62))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+                Text(ServerConfig.base)
+                    .font(pf(12.5))
+                    .foregroundColor(Color(white: 0.45))
+                HStack(spacing: 10) {
+                    Button {
+                        Task { await model.bootstrap() }
+                    } label: {
+                        Text("重新连接")
+                            .font(pf(14, .semibold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 18)
+                            .frame(height: 38)
+                            .background(Capsule().fill(Theme.primary))
+                    }
+                    Button {
+                        showServer = true
+                    } label: {
+                        Text("改服务器地址")
+                            .font(pf(14))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16)
+                            .frame(height: 38)
+                            .background(Capsule().fill(Color(white: 0.18)))
+                    }
+                }
+                .padding(.top, 4)
+            }
+        }
+        .ignoresSafeArea()
+    }
+
+    private var offlineBanner: some View {
+        Button {
+            showServer = true
+        } label: {
+            HStack(spacing: 6) {
+                Circle().fill(Color.orange).frame(width: 7, height: 7)
+                Text("未连上后台 · " + ServerConfig.base)
+                    .font(pf(12))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 12)
+            .frame(height: 30)
+            .background(Capsule().fill(Color.black.opacity(0.55)))
+        }
+        .padding(.top, 4)
     }
 
     // MARK: - 视频层
@@ -146,6 +230,8 @@ struct FeedScreen: View {
 
             BottomBar(selected: $bottomTab, unread: model.unread, onPlus: { showSameStyle = true })
         }
+        // 后台改了字号/颜色，用 renderTick 逼着整套界面重画
+        .id(model.renderTick)
     }
 
     private func like() {

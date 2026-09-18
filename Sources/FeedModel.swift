@@ -28,34 +28,66 @@ final class FeedModel: ObservableObject {
     @Published var comments: [CommentItem] = []
     @Published var loadingComments = false
     @Published var sheet: FeedSheet?
+    /// 界面参数变了要逼着界面重画，所以留一个计数器
+    @Published var renderTick = 0
 
     private var nextCursor = 0
     private var hasMore = true
     private var loadedTabs: [RemoteTab] = []
     private var played = Set<String>()
+    private var knownRev = 0
+    private var pollTimer: Timer?
 
     func bootstrap() async {
         do {
             let r = try await Api.get("/api/bootstrap?count=5&viewer=\(ServerConfig.viewer)",
                                       as: BootstrapResponse.self)
             Theme.apply(r.settings)
+            knownRev = r.rev ?? knownRev
             if let list = r.tabs, !list.isEmpty {
                 loadedTabs = list
                 tabs = list.map { $0.name }
                 if let t = r.tab, let idx = list.firstIndex(where: { $0.id == t }) { tabIndex = idx }
             }
-            if let list = r.items, !list.isEmpty {
-                items = list.enumerated().map { Store.fromRemote($0.element, index: $0.offset) }
-            }
+            // 注意：后台删空了也要跟着空，不然 App 会一直显示旧数据
+            let list = r.items ?? []
+            items = list.enumerated().map { Store.fromRemote($0.element, index: $0.offset) }
             nextCursor = r.nextCursor ?? items.count
             hasMore = r.hasMore ?? false
             unread = r.unread.map { $0 > 99 ? "99+" : String($0) } ?? Theme.unreadBadge
             online = true
             status = "已连接 · " + ServerConfig.base
+            renderTick += 1
         } catch {
             online = false
             status = "连不上后台，先用本地演示数据"
+            renderTick += 1
         }
+    }
+
+    /// 每 4 秒问一次后台版本号：后台改过东西就自动重拉（不用杀 App）
+    func startPolling() {
+        stopPolling()
+        pollTimer = Timer.scheduledTimer(withTimeInterval: 4, repeats: true) { [weak self] _ in
+            Task { await self?.checkVersion() }
+        }
+    }
+
+    func stopPolling() {
+        pollTimer?.invalidate()
+        pollTimer = nil
+    }
+
+    func checkVersion() async {
+        guard let v = try? await Api.get("/api/version", as: VersionResponse.self) else {
+            if online { online = false; status = "与后台断开，稍后自动重连" }
+            return
+        }
+        if let r = v.rev, r != knownRev {
+            await bootstrap()
+            return
+        }
+        if !online { await bootstrap() }
     }
 
     func selectTab(_ index: Int) async {
@@ -69,7 +101,10 @@ final class FeedModel: ObservableObject {
                 items = list.enumerated().map { Store.fromRemote($0.element, index: $0.offset) }
                 nextCursor = r.nextCursor ?? items.count
                 hasMore = r.hasMore ?? false
+            } else {
+                items = []
             }
+            renderTick += 1
         } catch {
             status = "这一栏没拉到数据"
         }

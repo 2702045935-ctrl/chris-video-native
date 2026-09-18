@@ -89,6 +89,7 @@ struct RemoteVideo: Codable, Identifiable {
 }
 
 struct BootstrapResponse: Codable {
+    var rev: Int?
     var settings: ServerSettings?
     var tabs: [RemoteTab]?
     var tab: String?
@@ -96,6 +97,14 @@ struct BootstrapResponse: Codable {
     var nextCursor: Int?
     var hasMore: Bool?
     var unread: Int?
+}
+
+/// 后台数据版本：变了就说明后台改过东西
+struct VersionResponse: Codable {
+    var rev: Int?
+    var videos: Int?
+    var tabs: Int?
+    var at: Int?
 }
 
 struct FeedResponse: Codable {
