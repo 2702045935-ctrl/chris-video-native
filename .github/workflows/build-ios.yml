@@ -1,0 +1,56 @@
+# ============================================================
+#  GitHub 云端打包（不用 Mac）
+#  推到 GitHub 后，macOS 机器会编译出 CHRISVideo-unsigned.ipa
+#  在仓库 Actions 页面下载，用爱思助手签名安装即可。
+# ============================================================
+name: build-ios
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 显示环境
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: 编译原生 App
+        run: |
+          set -e
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          APP="Payload/CHRISVideo.app"
+          rm -rf Payload
+          mkdir -p "$APP"
+          cp Info.plist "$APP/Info.plist"
+          cp AppIcon60x60@2x.png "$APP/"
+          cp AppIcon60x60@3x.png "$APP/"
+          if [ -d Assets ]; then cp Assets/* "$APP/"; fi
+          xcrun --sdk iphoneos swiftc \
+            -sdk "$SDK" \
+            -target arm64-apple-ios16.0 \
+            -swift-version 5 \
+            -parse-as-library \
+            -O \
+            -F "$SDK/System/Library/Frameworks" \
+            -o "$APP/CHRISVideo" \
+            Sources/*.swift \
+            -framework SwiftUI -framework UIKit -framework Foundation
+          echo "编译完成，体积："
+          ls -lh "$APP/CHRISVideo"
+          zip -qry CHRISVideo-unsigned.ipa Payload
+          ls -lh CHRISVideo-unsigned.ipa
+
+      - name: 上传安装包
+        uses: actions/upload-artifact@v4
+        with:
+          name: CHRISVideo-unsigned-ipa
+          path: CHRISVideo-unsigned.ipa
+          if-no-files-found: error
+
