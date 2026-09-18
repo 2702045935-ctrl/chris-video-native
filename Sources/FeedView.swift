@@ -15,6 +15,7 @@ struct FeedScreen: View {
     @State var showMusic = false
     @State var showComments = false
     @State var showServer = false
+    @State var showDislike = false
 
     private var video: Video {
         model.items.indices.contains(index) ? model.items[index] : Store.videos[0]
@@ -41,6 +42,7 @@ struct FeedScreen: View {
         }
         .task {
             await model.bootstrap()
+            model.enterVideo(video)
             model.startPolling()
         }
         .onChange(of: scenePhase) { phase in
@@ -64,6 +66,17 @@ struct FeedScreen: View {
         }
         .sheet(isPresented: $showServer) {
             ServerSheet(model: model, isPresented: $showServer)
+        }
+        .confirmationDialog("这条视频", isPresented: $showDislike, titleVisibility: .visible) {
+            Button("不感兴趣") {
+                model.dislike(video, author: false)
+            }
+            Button("不感兴趣 · " + video.author, role: .destructive) {
+                model.dislike(video, author: true)
+            }
+            Button("取消", role: .cancel) { }
+        } message: {
+            Text("告诉算法少推这类内容")
         }
     }
 
@@ -142,7 +155,8 @@ struct FeedScreen: View {
                     // 只给「当前这条 + 前后各一条」真开播放器，其他只画封面 —— 一屏 5 个播放器会卡
                     Group {
                         if abs(v.id - model.items[safeIndex].id) <= 1 {
-                            VideoCanvas(video: v, isActive: v.id == model.items[safeIndex].id)
+                            VideoCanvas(video: v, isActive: v.id == model.items[safeIndex].id,
+                                        onFinished: { model.markFinished(v) })
                         } else {
                             PosterOnly(video: v)
                         }
@@ -188,8 +202,11 @@ struct FeedScreen: View {
                         }
                         model.reportPlay(video)
                         model.loadMoreIfNeeded(next)
+                        // 行为上报：曝光 + 有效播放/划走
+                        model.enterVideo(video)
                     }
             )
+            .onLongPressGesture(minimumDuration: 0.5) { showDislike = true }
         }
         .ignoresSafeArea()
     }

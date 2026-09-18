@@ -158,6 +158,10 @@ struct MutedResult: Codable {
     var muted: Bool?
 }
 
+struct AlgoEventResult: Codable {
+    var ok: Bool?
+}
+
 enum ApiError: Error {
     case badURL
 }

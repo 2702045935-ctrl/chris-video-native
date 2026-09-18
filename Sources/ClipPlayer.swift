@@ -22,17 +22,20 @@ struct ClipPlayer: UIViewRepresentable {
     let url: URL
     let isActive: Bool
     let isMuted: Bool
+    var onFinished: (() -> Void)? = nil
 
     func makeUIView(context: Context) -> PlayerContainerView {
         let view = PlayerContainerView()
         view.load(url: url, muted: isMuted)
         view.setActive(isActive)
+        view.onFinished = onFinished
         return view
     }
 
     func updateUIView(_ view: PlayerContainerView, context: Context) {
         view.setMuted(isMuted)
         view.setActive(isActive)
+        view.onFinished = onFinished
     }
 
     static func dismantleUIView(_ view: PlayerContainerView, coordinator: ()) {
@@ -43,6 +46,7 @@ struct ClipPlayer: UIViewRepresentable {
 final class PlayerContainerView: UIView {
     override class var layerClass: AnyClass { AVPlayerLayer.self }
 
+    var onFinished: (() -> Void)?
     private var player: AVPlayer?
     private var statusObs: NSKeyValueObservation?
     private var endObserver: NSObjectProtocol?
@@ -74,9 +78,11 @@ final class PlayerContainerView: UIView {
             forName: .AVPlayerItemDidPlayToEndTime,
             object: item,
             queue: .main
-        ) { [weak p] _ in
-            p?.seek(to: .zero)
-            p?.play()
+        ) { [weak self] _ in
+            guard let self = self else { return }
+            self.player?.seek(to: .zero)
+            self.player?.play()
+            self.onFinished?()
         }
     }
 

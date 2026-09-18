@@ -118,6 +118,7 @@ enum Store {
 struct VideoCanvas: View {
     let video: Video
     let isActive: Bool
+    var onFinished: (() -> Void)? = nil
     @State var zoom: CGFloat = 1.0
 
     var body: some View {
@@ -147,7 +148,8 @@ struct VideoCanvas: View {
                                    startPoint: .top, endPoint: .bottom)
                 }
                 if let url = Store.videoURL(video.clip) {
-                    ClipPlayer(url: url, isActive: isActive, isMuted: Theme.muted)
+                    ClipPlayer(url: url, isActive: isActive, isMuted: Theme.muted,
+                               onFinished: onFinished)
                         .allowsHitTesting(false)
                 }
             }

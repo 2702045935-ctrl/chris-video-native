@@ -37,6 +37,65 @@ final class FeedModel: ObservableObject {
     private var played = Set<String>()
     private var knownRev = 0
     private var pollTimer: Timer?
+    // 行为上报（推荐算法靠这个学习）
+    private var watchId = ""
+    private var watchStart = Date()
+    private var finished = Set<String>()
+    private var eventSession = UUID().uuidString.prefix(8).lowercased()
+
+    /// 开始看一条：曝光 + 开始播放
+    func enterVideo(_ v: Video) {
+        leaveVideo()
+        guard online, !v.remoteId.isEmpty else { return }
+        watchId = v.remoteId
+        watchStart = Date()
+        sendEvent("imp", v)
+        sendEvent("play", v)
+    }
+
+    /// 划走：不到 3 秒算负反馈，否则算一次有效播放（带观看时长）
+    func leaveVideo() {
+        guard !watchId.isEmpty else { return }
+        let ms = Int(Date().timeIntervalSince(watchStart) * 1000)
+        let skipped = ms < 3000 && !finished.contains(watchId)
+        sendEventRaw(skipped ? "skip" : "play", watchId, ["value": ms])
+        watchId = ""
+    }
+
+    /// 看完（播放器回调）
+    func markFinished(_ v: Video) {
+        guard !v.remoteId.isEmpty, !finished.contains(v.remoteId) else { return }
+        finished.insert(v.remoteId)
+        sendEvent("finish", v)
+    }
+
+    /// 不感兴趣（author = true 表示不看他这个作者）
+    func dislike(_ v: Video, author: Bool) {
+        sendEvent("dislike", v, ["author": author])
+        status = author ? "已减少这类作者的内容" : "已减少这类内容"
+        let gone = v.remoteId
+        Task {
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            await bootstrap()          // 立刻重拉一版推荐
+            if let idx = items.firstIndex(where: { $0.remoteId == gone }) { items.remove(at: idx) }
+        }
+    }
+
+    private func sendEvent(_ type: String, _ v: Video, _ extra: [String: Any] = [:]) {
+        guard !v.remoteId.isEmpty else { return }
+        sendEventRaw(type, v.remoteId, extra)
+    }
+
+    private func sendEventRaw(_ type: String, _ videoId: String, _ extra: [String: Any] = [:]) {
+        guard online else { return }
+        var body: [String: Any] = ["type": type, "videoId": videoId,
+                                   "viewer": ServerConfig.viewer,
+                                   "session": String(eventSession)]
+        extra.forEach { body[$0.key] = $0.value }
+        Task {
+            _ = try? await Api.post("/api/event", body: body, as: AlgoEventResult.self)
+        }
+    }
 
     func bootstrap() async {
         do {
