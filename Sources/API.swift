@@ -205,7 +205,7 @@ enum Theme {
     static var showMusic = true
     static var showTopTabs = true
     static var showFollow = true
-    static var muted = true
+    static var muted = false
     static var unreadBadge = "65"
     static var commentPlaceholder = "说点什么…"
 
@@ -228,7 +228,7 @@ enum Theme {
         showMusic = s.showMusic ?? true
         showTopTabs = s.showTopTabs ?? true
         showFollow = s.showFollow ?? true
-        muted = s.muted ?? true
+        muted = s.muted ?? false
         unreadBadge = s.unreadBadge ?? "65"
         commentPlaceholder = s.commentPlaceholder ?? "说点什么…"
     }

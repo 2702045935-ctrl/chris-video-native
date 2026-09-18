@@ -147,7 +147,7 @@ struct VideoCanvas: View {
                                    startPoint: .top, endPoint: .bottom)
                 }
                 if let url = Store.videoURL(video.clip) {
-                    ClipPlayer(url: url, isActive: isActive, isMuted: true)
+                    ClipPlayer(url: url, isActive: isActive, isMuted: Theme.muted)
                         .allowsHitTesting(false)
                 }
             }

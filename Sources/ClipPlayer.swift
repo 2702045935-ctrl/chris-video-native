@@ -18,6 +18,7 @@ struct ClipPlayer: UIViewRepresentable {
     }
 
     func updateUIView(_ view: PlayerContainerView, context: Context) {
+        view.setMuted(isMuted)
         view.setActive(isActive)
     }
 
@@ -73,6 +74,11 @@ final class PlayerContainerView: UIView {
             p.pause()
             p.seek(to: .zero)
         }
+    }
+
+    /// 后台「静音」开关改了，立刻生效（不用重进 App）
+    func setMuted(_ muted: Bool) {
+        player?.isMuted = muted
     }
 
     func shutdown() {
