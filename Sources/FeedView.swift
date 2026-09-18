@@ -6,6 +6,7 @@ import SwiftUI
 struct FeedScreen: View {
     @Binding var bottomTab: Int
     @Binding var showLogin: Bool
+    var onOpenSearch: () -> Void = { }
     @StateObject var model = FeedModel()
     @Environment(\.scenePhase) private var scenePhase
     @State var index = 0
@@ -17,6 +18,7 @@ struct FeedScreen: View {
     @State var showComments = false
     @State var showServer = false
     @State var showDislike = false
+    @State var showShare = false
 
     private var video: Video {
         model.items.indices.contains(index) ? model.items[index] : Store.videos[0]
@@ -68,16 +70,11 @@ struct FeedScreen: View {
         .sheet(isPresented: $showServer) {
             ServerSheet(model: model, isPresented: $showServer)
         }
-        .confirmationDialog("这条视频", isPresented: $showDislike, titleVisibility: .visible) {
-            Button("不感兴趣") {
-                model.dislike(video, author: false)
-            }
-            Button("不感兴趣 · " + video.author, role: .destructive) {
-                model.dislike(video, author: true)
-            }
-            Button("取消", role: .cancel) { }
-        } message: {
-            Text("告诉算法少推这类内容")
+        .sheet(isPresented: $showDislike) {
+            MoreMenu(video: video, onClose: { showDislike = false }, model: model)
+        }
+        .sheet(isPresented: $showShare) {
+            ShareSheet(video: video, onClose: { showShare = false })
         }
     }
 
@@ -227,14 +224,14 @@ struct FeedScreen: View {
                            index = 0
                            Task { await model.selectTab(i) }
                        },
-                       onSearch: { showSearch = true },
+                       onSearch: { onOpenSearch() },
                        onMenu: { showServer = true })
             } else {
                 GeometryReader { g in
                     SearchIcon(size: M.searchSize)
                         .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
-                        .onTapGesture { showSearch = true }
+                        .onTapGesture { onOpenSearch() }
                         .position(x: g.size.width - M.searchCenterTrailing, y: M.topBarCenterBelowSafeTop)
                 }
             }
@@ -256,6 +253,7 @@ struct FeedScreen: View {
                      onShare: {
                          guard requireLogin() else { return }
                          Task { await model.share(safeIndex) }
+                         showShare = true
                      },
                      onFollow: {
                          guard requireLogin() else { return }

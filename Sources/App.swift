@@ -20,17 +20,12 @@ struct ChrisVideoApp: App {
 }
 
 struct RootView: View {
-    @State var bottomTab = 0
     @ObservedObject var auth = Auth.shared
     @State var showLogin = false
 
     var body: some View {
         ZStack {
-            if bottomTab == 0 {
-                FeedScreen(bottomTab: $bottomTab, showLogin: $showLogin)
-            } else {
-                TabPage(index: bottomTab, selected: $bottomTab)
-            }
+            MainTabs(showLogin: $showLogin)
         }
         .background(Color.black.ignoresSafeArea())
         .fullScreenCover(isPresented: $showLogin) {

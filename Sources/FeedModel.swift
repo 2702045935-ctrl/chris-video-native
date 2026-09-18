@@ -51,6 +51,12 @@ final class FeedModel: ObservableObject {
         watchStart = Date()
         sendEvent("imp", v)
         sendEvent("play", v)
+        // 记一条观看历史（「我 → 观看历史」用）
+        let vid = v.remoteId
+        Task {
+            struct Res: Codable { var ok: Bool? }
+            _ = try? await Api.post("/api/history", body: ["videoId": vid], as: Res.self)
+        }
     }
 
     /// 划走：不到 3 秒算负反馈，否则算一次有效播放（带观看时长）
