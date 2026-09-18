@@ -6,8 +6,12 @@ import SwiftUI
 
 enum ServerConfig {
     static let key = "chris_video_server"
+    static let tokenKey = "chris_video_token"
     static let fallback = "http://192.168.2.7:5190"
     static let viewer = "u_me"
+
+    /// 登录 token：直接读 UserDefaults，避免在异步网络层里跨 actor 取值
+    static var token: String { UserDefaults.standard.string(forKey: tokenKey) ?? "" }
 
     static var base: String {
         get { UserDefaults.standard.string(forKey: key) ?? fallback }
@@ -176,7 +180,7 @@ struct Api {
         var req = URLRequest(url: u)
         req.timeoutInterval = 6
         req.setValue(ServerConfig.viewer, forHTTPHeaderField: "X-Viewer")
-        if !Auth.shared.token.isEmpty { req.setValue(Auth.shared.token, forHTTPHeaderField: "X-Token") }
+        if !ServerConfig.token.isEmpty { req.setValue(ServerConfig.token, forHTTPHeaderField: "X-Token") }
         let (data, _) = try await URLSession.shared.data(for: req)
         return try JSONDecoder().decode(T.self, from: data)
     }
@@ -188,7 +192,7 @@ struct Api {
         req.timeoutInterval = 6
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.setValue(ServerConfig.viewer, forHTTPHeaderField: "X-Viewer")
-        if !Auth.shared.token.isEmpty { req.setValue(Auth.shared.token, forHTTPHeaderField: "X-Token") }
+        if !ServerConfig.token.isEmpty { req.setValue(ServerConfig.token, forHTTPHeaderField: "X-Token") }
         req.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
         let (data, _) = try await URLSession.shared.data(for: req)
         return try JSONDecoder().decode(T.self, from: data)

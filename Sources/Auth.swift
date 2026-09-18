@@ -63,11 +63,9 @@ final class Auth: ObservableObject {
     /// 游客模式：没登录也能刷，点赞评论时才要求登录
     @Published var guest = false
 
-    private let tokenKey = "chris_video_token"
-
     var token: String {
-        get { UserDefaults.standard.string(forKey: tokenKey) ?? "" }
-        set { UserDefaults.standard.set(newValue, forKey: tokenKey) }
+        get { ServerConfig.token }
+        set { UserDefaults.standard.set(newValue, forKey: ServerConfig.tokenKey) }
     }
 
     var isLoggedIn: Bool { user != nil }
